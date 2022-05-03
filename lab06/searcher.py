@@ -1,5 +1,3 @@
-import json
-
 from datasets import load_dataset
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
@@ -12,22 +10,24 @@ class Searcher:
         self.train = load_dataset("wikipedia", "20220301.simple")['train']
         self.dictionary = {}
         self.words = []
-        self.size = len(self.train['title'])
         self.size = 1000
         self.words_frequency_in_article = [{} for _ in range(self.size)]
         self.stop_words = set(stopwords.words('english'))
-
         self.preprocessing()
+
+        self.words_number = len(self.words)
+        self.word_to_index = {self.words[i]: i for i in range(self.words_number)}
+        self.index_to_word = {i: self.words[i] for i in range(self.words_number)}
 
         self.words_frequency = self.find_frequency()
 
         self.matrix = self.create_matrix()
         self.idf()
-        self.find_articles()
+        np.save('matrix.npy', self.matrix)
+        np.save('words.npy', self.words)
+        # self.find_articles()
 
-        # nltk.download('stopwords')
-        # nltk.download('wordnet')
-        # nltk.download('omw-1.4')
+
 
     def prepare_list(self, data):
         text = data.lower()
@@ -40,10 +40,6 @@ class Searcher:
         lemmatizer = WordNetLemmatizer()
         idx = 0
         for data in self.train['text']:
-            # text = data.lower()
-            # text = text.replace("_", "")
-            # text = re.sub(r'[^\w\s]', '', text)
-            # text = re.sub('  +', ' ', text)
             words_list = self.prepare_list(data)
 
             for word in words_list:
@@ -61,27 +57,25 @@ class Searcher:
                 else:
                     self.words_frequency_in_article[idx][word] = 1
             idx += 1
-            if idx == 1000:
+            if idx == self.size:
                 break
 
     def create_matrix(self):
         matrix = np.zeros((len(self.words), self.size))
-        indexes = {self.words[i]: i for i in range(len(self.words))}
 
         idx = 0
         for column in self.words_frequency_in_article:
             sum_ = sum(column.values())
             for word in column.keys():
-                matrix[indexes[word], idx] = self.words_frequency_in_article[idx][word] / sum_
+                matrix[self.word_to_index[word], idx] = self.words_frequency_in_article[idx][word] / sum_
 
             idx += 1
 
         return matrix
 
     def idf(self):
-        indexes = {i: self.words[i] for i in range(len(self.words))}
         for i in range(len(self.words)):
-            self.matrix[i, :] *= np.log(self.size / self.words_frequency[indexes[i]])
+            self.matrix[i, :] *= np.log(self.size / self.words_frequency[self.index_to_word[i]])
 
     def find_frequency(self):
         freq = {self.words[i]: 0 for i in range(len(self.words))}
@@ -93,30 +87,26 @@ class Searcher:
 
         return freq
 
-    def find_articles(self):
-        # np.savetxt('matrix.txt', self.matrix, fmt='%d')
-        indexes = {self.words[i]: i for i in range(len(self.words))}
-        similarity = []
-        word = input()
+    # def find_articles(self):
+    #     similarity = []
+    #     word = input()
+    #
+    #     words_list = self.prepare_list(word)
+    #
+    #     vector = np.zeros(self.words_number)
+    #
+    #     for word in words_list:
+    #         vector[self.word_to_index[word]] = 1 / len(words_list)
+    #
+    #     for i in range(self.size):
+    #         cos = np.matmul(vector.T, self.matrix[:, i]) / (np.linalg.norm(vector) * np.linalg.norm(self.matrix[:, i]))
+    #         similarity.append(cos)
+    #
+    #     ind = np.array(similarity)
+    #     ind = ind.argsort()[-9:][::-1]
+    #
+    #     for idx in ind:
+    #         print(self.train['title'][idx])
 
-        # text = word.lower()
-        # text = text.replace("_", "")
-        # text = re.sub(r'[^\w\s]', '', text)
-        # text = re.sub('  +', ' ', text)
-        # words_list = text.split()
-        words_list = self.prepare_list(word)
-
-        vector = np.zeros(len(self.words))
-
-        for word in words_list:
-            vector[indexes[word]] = 1 / len(words_list)
-
-        for i in range(self.size):
-            cos = np.matmul(vector.T, self.matrix[:, i]) / (np.linalg.norm(vector) * np.linalg.norm(self.matrix[:, i]))
-            similarity.append(cos)
-
-        ind = np.array(similarity)
-        ind = ind.argsort()[-9:][::-1]
-
-        for idx in ind:
-            print(self.train['title'][idx])
+if __name__ == "__main__":
+    searcher = Searcher()
