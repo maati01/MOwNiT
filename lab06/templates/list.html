@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<form method="post">
+    <br>
+
+    <table class="centered thick-border">
+        <tr>
+            <th>Title</th>
+            <th>URL</th>
+        </tr>
+        {% for row in list %}
+            <tr>
+                <td>{{ row[0] }}</td>
+                <td style="padding-left:30px" ><a href={{ row[1] }}>{{ row[1] }}</a></td>
+            </tr>
+        {% endfor %}
+
+
+    </table>
+    <br>
+    <button type="submit">Back</button>
+    <br>
+
+</form>
+{% endblock %}

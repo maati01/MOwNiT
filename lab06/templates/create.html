@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <h1>{% block title %} What are you looking for? {% endblock %}</h1>
+    <form method="post">
+        <br>
+        <input type="text" name="message" style="width: 300px;"
+               placeholder=""
+               value="{{ request.form['message'] }}"></input>
+        <br>
+        <br>
+        <button type="submit">Submit</button>
+    </form>
+{% endblock %}

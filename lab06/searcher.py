@@ -3,6 +3,8 @@ from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
 import re
 import numpy as np
+from sklearn.preprocessing import normalize
+import scipy
 
 
 class Searcher:
@@ -23,11 +25,11 @@ class Searcher:
 
         self.matrix = self.create_matrix()
         self.idf()
+        self.normalize_vector()
+        self.matrix = self.svd(999)
         np.save('matrix.npy', self.matrix)
         np.save('words.npy', self.words)
         # self.find_articles()
-
-
 
     def prepare_list(self, data):
         text = data.lower()
@@ -87,26 +89,14 @@ class Searcher:
 
         return freq
 
-    # def find_articles(self):
-    #     similarity = []
-    #     word = input()
-    #
-    #     words_list = self.prepare_list(word)
-    #
-    #     vector = np.zeros(self.words_number)
-    #
-    #     for word in words_list:
-    #         vector[self.word_to_index[word]] = 1 / len(words_list)
-    #
-    #     for i in range(self.size):
-    #         cos = np.matmul(vector.T, self.matrix[:, i]) / (np.linalg.norm(vector) * np.linalg.norm(self.matrix[:, i]))
-    #         similarity.append(cos)
-    #
-    #     ind = np.array(similarity)
-    #     ind = ind.argsort()[-9:][::-1]
-    #
-    #     for idx in ind:
-    #         print(self.train['title'][idx])
+    def normalize_vector(self):
+        for i in range(len(self.words)):
+            self.matrix[i, :] = normalize([self.matrix[i, :]], norm="l1")
+
+    def svd(self, k):
+        u, s, vt = scipy.sparse.linalg.svds(self.matrix, k=k)
+        return u @ np.diag(s) @ vt
+
 
 if __name__ == "__main__":
     searcher = Searcher()
